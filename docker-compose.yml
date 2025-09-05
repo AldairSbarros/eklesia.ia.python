@@ -1,0 +1,41 @@
+version: '3.8'
+services:
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+
+  postgres:
+    image: postgres:15
+    container_name: eklesia_postgres
+    environment:
+      POSTGRES_DB: eklesia_ia_db
+      POSTGRES_USER: aldai
+      POSTGRES_PASSWORD: 2025
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  backend:
+    build: .
+    container_name: eklesia_backend_python
+    environment:
+      DATABASE_URL: postgresql+psycopg2://aldai:2025@postgres:5432/eklesia_ia_db
+      BIBLE_API_KEY: ${BIBLE_API_KEY}
+      BIBLE_API_URL: ${BIBLE_API_URL}
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - ollama
+    restart: unless-stopped
+
+volumes:
+  ollama_data:
+  postgres_data:

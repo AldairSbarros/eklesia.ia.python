@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.env
+.env
+.env.*
+*.sqlite3
+*.db
+*.log
+*.bak
+*.swp
+*.tmp
+
+# VSCode
+.vscode/
+
+# Docker
+*.pid
+*.sock
+
+# Jupyter
+.ipynb_checkpoints
+
+# Modelos Ollama
+ollama_data/
+
+# Postgres
+postgres_data/
+
+# Build/Dist
+build/
+dist/
+*.egg-info/
+
+# Uploads temporários
+*.pptx
+*.pdf
+*.docx
+*.html
+*.txt
+temp_*
+
+# Outros
+upload.html
+
+# Sistema
+.DS_Store
+Thumbs.db
