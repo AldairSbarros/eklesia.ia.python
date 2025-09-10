@@ -31,28 +31,6 @@ def create_user(username, email, full_name, hashed_password, is_admin=0):
     return user
 
 
-def ensure_admin_user():
-    admin_email = "aldairbarros@eklesia.app.br"
-    admin = session.query(User).filter_by(email=admin_email).first()
-    if not admin:
-        from passlib.context import CryptContext
-        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        hashed = pwd_context.hash("Alsib@2025")
-        create_user(
-            username=admin_email,
-            email=admin_email,
-            full_name="Aldair Barros",
-            hashed_password=hashed,
-            is_admin=1
-        )
-        print("Usuário admin criado com sucesso!")
-    else:
-        print("Usuário admin já existe.")
-
-
-ensure_admin_user()
-
-
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///conteudo_teologico.db")
 engine = create_engine(DATABASE_URL)
 Session = sessionmaker(bind=engine)

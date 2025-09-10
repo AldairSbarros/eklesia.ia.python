@@ -3,11 +3,14 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.auth import (
     authenticate_user,
     create_access_token,
-    get_current_active_user,
+   
     Token,
     register_user,
 )
-from app.auth import free_or_authenticated
+from app.auth import (
+    free_or_authenticated,
+    get_current_user,
+)
 from pydantic import BaseModel
 from app.chat import responder_pergunta_com_versiculo
 from app.sermoes.generator import (
@@ -103,7 +106,7 @@ async def login_for_access_token(
 
 @router.get("/biblia/busca-palavra")
 async def biblia_busca_palavra(
-    palavra: str, limite: int = 50, user=Depends(get_current_active_user)
+    palavra: str, limite: int = 50, user=Depends(get_current_user)
 ):
     """
     Busca todos os versos que contenham a palavra em todos os idiomas
@@ -129,7 +132,7 @@ async def biblia_busca_referencia(
 
 # Listar todas as versões disponíveis nos idiomas desejados
 @router.get("/biblia/versoes")
-async def biblia_versoes(user=Depends(get_current_active_user)):
+async def biblia_versoes(user=Depends(get_current_user)):
     """
     Lista todas as versões disponíveis em português, espanhol, inglês,
     grego e hebraico.
@@ -175,18 +178,18 @@ async def biblia_audio_timestamps(
 
 # Listar idiomas disponíveis
 @router.get("/biblia/idiomas")
-async def biblia_idiomas(user=Depends(get_current_active_user)):
+async def biblia_idiomas(user=Depends(get_current_user)):
     return listar_idiomas()
 
 
 # Listar países disponíveis
 @router.get("/biblia/paises")
-async def biblia_paises(user=Depends(get_current_active_user)):
+async def biblia_paises(user=Depends(get_current_user)):
     return listar_paises()
 
 
 @router.post("/perguntar")
-async def perguntar(request: Request, user=Depends(get_current_active_user)):
+async def perguntar(request: Request, user=Depends(get_current_user)):
     data = await request.json()
     pergunta = data.get("pergunta")
     resposta = responder_pergunta_com_versiculo(pergunta)
@@ -194,7 +197,7 @@ async def perguntar(request: Request, user=Depends(get_current_active_user)):
 
 
 @router.post("/gerar-sermao")
-async def gerar(request: Request, user=Depends(get_current_active_user)):
+async def gerar(request: Request, user=Depends(get_current_user)):
     data = await request.json()
     tipo = data.get("tipo", "expositivo")
     tema = data.get("tema", "graça")
@@ -206,7 +209,7 @@ async def gerar(request: Request, user=Depends(get_current_active_user)):
 
 
 @router.post("/indexar-conteudo")
-async def indexar_conteudo(user=Depends(get_current_active_user)):
+async def indexar_conteudo(user=Depends(get_current_user)):
     try:
         indexar_conteudo_teologico()
         return {"status": "sucesso", "mensagem": "Conteúdo indexado na IA."}
@@ -243,19 +246,19 @@ async def pesquisar(
 
 
 @router.get("/biblias")
-async def biblias(user=Depends(get_current_active_user)):
+async def biblias(user=Depends(get_current_user)):
     return listar_biblias()
 
 
 @router.get("/livros")
-async def livros(bible_id: str, user=Depends(get_current_active_user)):
+async def livros(bible_id: str, user=Depends(get_current_user)):
     return listar_livros(bible_id)
 
 
 @router.post("/gerar-estudo")
 async def gerar_estudo(
     request: Request,
-    user=Depends(get_current_active_user),
+    user=Depends(get_current_user),
 ):
     data = await request.json()
     tema = data.get("tema")
@@ -267,7 +270,7 @@ async def gerar_estudo(
 
 @router.post("/gerar-devocional")
 async def gerar_devocional_endpoint(
-    request: Request, user=Depends(get_current_active_user)
+    request: Request, user=Depends(get_current_user)
 ):
     data = await request.json()
     tema = data.get("tema")
@@ -280,7 +283,7 @@ async def gerar_devocional_endpoint(
 @router.post("/gerar-ebook")
 async def gerar_ebook_endpoint(
     request: Request,
-    user=Depends(get_current_active_user),
+    user=Depends(get_current_user),
 ):
     data = await request.json()
     tema = data.get("tema")
