@@ -1,4 +1,0 @@
-Arquivo de teste TXT
-est_integracao_sistema.py::test_integracao_ia
-  J:\Projetos Python\eklesia.ia.python\app\chat.py:7: LangChainDeprecationWarning: The class `Ollama` was deprecated in LangChain 0.3.1 and will be removed in 1.0.0. An updated version of the class exists in the :class:`~langchain-ollama package and should be used instead. To use it run `pip install -U :class:`~langchain-ollama` and import as `from :class:`~langchain_ollama import OllamaLLM``.
-    llm = Ollama(model="gemma:2b")
