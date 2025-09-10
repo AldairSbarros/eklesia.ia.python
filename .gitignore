@@ -48,3 +48,5 @@ upload.html
 # Sistema
 .DS_Store
 Thumbs.db
+Eklesia.docx
+.env.example
