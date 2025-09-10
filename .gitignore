@@ -39,7 +39,7 @@ dist/
 *.pdf
 *.docx
 *.html
-*.txt
+
 temp_*
 
 # Outros
