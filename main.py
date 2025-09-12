@@ -1,5 +1,5 @@
-From fastapi import FastAPI
-From app.routes import routes
+from fastapi import FastAPI
+from app.routes import routes
 
-App = FastAPI(title="EKLESIA IA")
-App.include_router(router)
+app = FastAPI(title="EKLESIA IA")
+app.include_router(routes)

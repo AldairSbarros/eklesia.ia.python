@@ -4,6 +4,7 @@ print("""
 ==============================
 API EKLESIA IA RODANDO NA PORTA 8000
 ACESSE: http://127.0.0.1:8000
+ACESSE A DOCUMENTAÇÃO: http://127.0.0.1:8000/docs
 ==============================
 """)
 
