@@ -11,7 +11,7 @@ services:
       - eklesia-net
 
   postgres:
-    image: postgres:15
+    image: postgres:16
     container_name: eklesia_ia_postgres
     environment:
       POSTGRES_DB: eklesia_ia_db
@@ -22,6 +22,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "aldai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       eklesia-net:
         aliases:
