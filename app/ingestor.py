@@ -8,6 +8,7 @@ from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
 from langchain_community.embeddings import OllamaEmbeddings
 from langchain_community.vectorstores import Chroma
+from sqlalchemy.exc import OperationalError
 
 
 def get_user_by_username(username):
@@ -31,8 +32,15 @@ def create_user(username, email, full_name, hashed_password, is_admin=0):
     return user
 
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///conteudo_teologico.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:////data/app.db")
 engine = create_engine(DATABASE_URL)
+try:
+    # Testa conexão inicial; se falhar, usa SQLite local
+    with engine.connect() as _:
+        pass
+except Exception:
+    fallback_url = "sqlite:////data/app.db"
+    engine = create_engine(fallback_url)
 Session = sessionmaker(bind=engine)
 session = Session()
 
@@ -48,6 +56,7 @@ class User(Base):
     full_name = Column(String)
     hashed_password = Column(String, nullable=False)
     disabled = Column(Integer, default=0)
+    is_admin = Column(Integer, default=0)
 
 
 class ConteudoTeologico(Base):
@@ -107,6 +116,7 @@ def salvar_conteudo(titulo, texto, tipo, autor=None, tema=None, fonte=None):
     )
     session.add(conteudo)
     session.commit()
+    return conteudo.id
 
 
 def extrair_metadados_pdf(caminho):
@@ -180,7 +190,12 @@ def extrair_metadados_ppt(caminho):
     return autor, tema, None
 
 
-def processar_arquivo(caminho, tipo, autor=None, tema=None, fonte=None):
+def processar_arquivo(caminho, tipo=None, autor=None, tema=None, fonte=None):
+    # Detecta tipo por extensão, se não informado
+    if not tipo:
+        _, ext = os.path.splitext(caminho)
+        tipo = ext.lower().lstrip(".")
+
     if tipo == "pdf":
         texto = extrair_pdf(caminho)
         auto_autor, auto_tema, auto_titulo = extrair_metadados_pdf(caminho)
@@ -201,7 +216,19 @@ def processar_arquivo(caminho, tipo, autor=None, tema=None, fonte=None):
     titulo = auto_titulo or os.path.basename(caminho)
     autor = autor or auto_autor
     tema = tema or auto_tema
-    salvar_conteudo(titulo, texto, tipo, autor, tema, fonte)
+    try:
+        return salvar_conteudo(titulo, texto, tipo, autor, tema, fonte)
+    except OperationalError:
+        # Se o DB cair no meio, tenta fallback para SQLite
+        try:
+            global engine, session
+            engine = create_engine("sqlite:////data/app.db")
+            SessionLocal = sessionmaker(bind=engine)
+            session = SessionLocal()
+            Base.metadata.create_all(engine)
+            return salvar_conteudo(titulo, texto, tipo, autor, tema, fonte)
+        except Exception as e:
+            raise e
 
 
 def indexar_conteudo_teologico():

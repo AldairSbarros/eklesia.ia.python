@@ -12,13 +12,20 @@ from collections import defaultdict
 import time
 
 # Configurações
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "supersecretkey")
+# Suporta JWT_SECRET (preferido) e JWT_SECRET_KEY (legado)
+SECRET_KEY = (
+    os.getenv("JWT_SECRET")
+    or os.getenv("JWT_SECRET_KEY", "supersecretkey")
+)
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 600
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
+# Versão opcional (não dispara 401 automaticamente se não houver token)
+oauth2_scheme_optional = OAuth2PasswordBearer(
+    tokenUrl="/login", auto_error=False
+)
 
 
 class Token(BaseModel):
@@ -108,14 +115,11 @@ def register_user(username: str, email: str, full_name: str, password: str):
 FREE_LIMIT = 10
 FREE_WINDOW = 60 * 60 * 24  # 24 horas
 _ip_access = defaultdict(lambda: {"count": 0, "first": 0})
-FREE_LIMIT = 10
-FREE_WINDOW = 60 * 60 * 24  # 24 horas
-_ip_access = defaultdict(lambda: {"count": 0, "first": 0})
 
 
 def free_or_authenticated(
     request: Request,
-    token: str = Depends(oauth2_scheme)
+    token: str | None = Depends(oauth2_scheme_optional),
 ):
     # Se token JWT válido, libera
     if token:

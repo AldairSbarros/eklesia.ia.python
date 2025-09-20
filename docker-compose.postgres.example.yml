@@ -1,0 +1,33 @@
+# Exemplo de stack Postgres compartilhado via rede externa eklesia-net
+# Suba esta stack em OUTRO diretório/projeto para compartilhar o DB
+# com a API Python (e outras stacks) sem expor porta pública.
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: eklesia_postgres_shared
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: eklesia_ia_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: troque_sua_senha
+    # Não expor 5432 no host; acesso somente pela rede docker
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d eklesia_ia_db || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      eklesia-net:
+        aliases:
+          - eklesia-postgres
+
+volumes:
+  postgres_data: {}
+
+networks:
+  eklesia-net:
+    external: true

@@ -1,54 +1,104 @@
+version: "3.9"
+
 services:
   ollama:
-    image: ollama/ollama
+    image: ollama/ollama:latest
     container_name: ollama
+    restart: unless-stopped
     ports:
       - "11434:11434"
-    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      OLLAMA_HOST: 0.0.0.0
+      OLLAMA_KEEP_ALIVE: 24h
+      OLLAMA_MAX_LOADED_MODELS: "2"
+      OLLAMA_NUM_PARALLEL: "1"
+    # (Opcional) GPU NVIDIA — habilite se seu host tiver GPU configurada
+    # gpus: all
+    healthcheck:
+      # Usa o CLI do Ollama; falha se o servidor não estiver pronto
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - eklesia-net
+
+  # Inicialização opcional para pré‑baixar modelos (roda uma vez)
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: ollama_init
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    # Baixa os modelos recomendados (ajuste conforme seu projeto)
+    command: >
+      bash -lc "ollama pull mistral && ollama pull bge-m3"
     volumes:
       - ollama_data:/root/.ollama
     networks:
       - eklesia-net
-
-  postgres:
-    image: postgres:16
-    container_name: eklesia_ia_postgres
-    environment:
-      POSTGRES_DB: eklesia_ia_db
-      POSTGRES_USER: aldai
-      POSTGRES_PASSWORD: 2025
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "aldai"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      eklesia-net:
-        aliases:
-          - postgres
+    restart: "no"
+    profiles:
+      - init
 
   backend:
     build: .
     container_name: eklesia_ia_backend_python
+    restart: unless-stopped
+    # (Opcional) Carregar variáveis do seu .env
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: postgresql+psycopg2://aldai:2025@postgres:5432/eklesia_ia_db
+      DATABASE_URL: ${DATABASE_URL}
+      EKLESIA_MOCK_RAG: ${EKLESIA_MOCK_RAG:-1}
       BIBLE_API_KEY: ${BIBLE_API_KEY}
       BIBLE_API_URL: ${BIBLE_API_URL}
+      CHROMA_PERSIST_DIR: /data/chroma_db
+      CHROMA_COLLECTION_NAME: eklesia
+      OLLAMA_LLM_MODEL: ${OLLAMA_LLM_MODEL:-mistral}
+      OLLAMA_EMBED_MODEL: ${OLLAMA_EMBED_MODEL:-bge-m3}
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_HOST: http://ollama:11434
+      UPLOAD_DIR: /data/uploads
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+
+    volumes:
+      # Persistência local do app (uploads, chroma_db, etc.)
+      - backend_data:/data
+      # (Opcional) Montar seus docs para ingestão
+      # - ./docs:/app/docs:ro
+
     depends_on:
-      - postgres
-      - ollama
-    restart: unless-stopped
+      # Mantemos dependência apenas do Ollama (DB é externo em outra stack)
+      ollama:
+        condition: service_healthy
+
+    ports:
+      - "8000:8000"
+
+    # Ajuste o comando de inicialização conforme seu Dockerfile
+    command: >
+      sh -c "uvicorn main:app --host 0.0.0.0 --port 8000 --proxy-headers --timeout-keep-alive 120"
+
+    # Healthcheck: considera o container saudável quando o DB responder
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/db/health >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
     networks:
       - eklesia-net
 
 volumes:
-  ollama_data:
-  postgres_data:
+  ollama_data: {}
+  backend_data: {}
 
 networks:
   eklesia-net:
